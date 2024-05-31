@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "mkdocs-git-diff-highlighter"
+name = "mkdocs-git-diff-highlighter-plugin"
 version = "0.1.0"
 description = ""
 authors = ["haradama <harada@sfc.wide.ad.jp>"]
@@ -8,10 +8,14 @@ readme = "README.md"
 [tool.poetry.dependencies]
 python = "^3.12"
 mkdocs = "^1.6.0"
-
+unidiff = "^0.7.5"
+gitpython = "^3.1.43"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2.1"
+
+[tool.poetry.plugins."mkdocs.plugins"]
+"git-diff-highlighter" = "mkdocs_git_diff_highlighter_plugin.plugin:GitDiffHighlighterPlugin"
 
 [build-system]
 requires = ["poetry-core"]

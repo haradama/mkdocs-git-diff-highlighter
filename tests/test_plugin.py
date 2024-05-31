@@ -1,50 +1,46 @@
-import pytest
-from unittest.mock import patch, MagicMock
+import unittest
 from mkdocs_git_diff_highlighter.plugin import GitDiffHighlighterPlugin
 
-@pytest.fixture
-def plugin():
-    plugin = GitDiffHighlighterPlugin()
-    plugin.config['compare_with'] = 'HEAD'
-    plugin.config['highlight_color'] = '#FF0000'
-    return plugin
+class TestGitDiffHighlighterPlugin(unittest.TestCase):
 
-@pytest.fixture
-def page_mock():
-    page = MagicMock()
-    page.file.src_path = 'path/to/file.md'
-    return page
+    def setUp(self):
+        self.plugin = GitDiffHighlighterPlugin()
+        self.plugin.load_config({'compare_with': 'HEAD'})
 
-def test_git_diff_called_correctly(plugin, page_mock):
-    with patch('subprocess.run') as mock_run:
-        # Setup mock return value
-        mock_run.return_value = MagicMock(returncode=0, stdout='''+added line\n''')
+    def test_apply_patch_to_content(self):
+        # テストデータ
+        original_content = "今日は晴れです。\n"
+        patch = """diff --git a/1.txt b/1.txt
+index c712072..cee7a92 100644
+--- a/1.txt
++++ b/1.txt
+@@ -1 +1 @@
+-今日は晴れです．
++今日は雨です．
+"""
 
-        # Execute
-        output = plugin.on_post_page('<p>Original content</p>', page_mock)
+        # 期待される結果
+        expected_content = "<span style=\"color: red;\">今日は雨です．</span>\n"
 
-        # Assert command was called correctly
-        mock_run.assert_called_with(['git', 'diff', 'HEAD', '--', 'path/to/file.md'], capture_output=True, text=True)
-        assert '<span style="color: #FF0000;">added line</span>' in output
+        # メソッドをテスト
+        modified_content = self.plugin.apply_patch_to_content(original_content, patch)
 
-def test_no_diffs_no_change(plugin, page_mock):
-    with patch('subprocess.run') as mock_run:
-        # Setup mock return value
-        mock_run.return_value = MagicMock(returncode=0, stdout='')
+        # 結果を検証
+        self.assertEqual(modified_content, expected_content)
 
-        # Execute
-        output = plugin.on_post_page('<p>Original content</p>', page_mock)
+    def test_replace_line(self):
+        original_content = "今日は晴れです。\n今日は良い天気です。\n"
+        line_num = 1
+        new_line = "<span style=\"color: red;\">今日は雨です。</span>"
+        
+        # 期待される結果
+        expected_content = "<span style=\"color: red;\">今日は雨です。</span>\n今日は良い天気です。\n"
 
-        # Assert no changes made to output content
-        assert output == '<p>Original content</p>'
+        # メソッドをテスト
+        modified_content = self.plugin.replace_line(original_content, line_num, new_line)
 
-def test_error_in_git_command(plugin, page_mock):
-    with patch('subprocess.run') as mock_run:
-        # Setup mock return value
-        mock_run.return_value = MagicMock(returncode=1, stdout='', stderr='error')
+        # 結果を検証
+        self.assertEqual(modified_content, expected_content)
 
-        # Execute
-        output = plugin.on_post_page('<p>Original content</p>', page_mock)
-
-        # Assert no changes made to output content and handle errors gracefully
-        assert output == '<p>Original content</p>'
+if __name__ == '__main__':
+    unittest.main()
